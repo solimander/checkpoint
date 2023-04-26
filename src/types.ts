@@ -67,6 +67,7 @@ export type ContractTemplate = {
 export interface CheckpointConfig {
   network_node_url: string;
   optimistic_indexing?: boolean;
+  optimistic_indexing_emit_confirmed?: boolean;
   start?: number;
   tx_fn?: string;
   global_events?: ContractEventConfig[];

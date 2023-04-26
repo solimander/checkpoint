@@ -76,11 +76,9 @@ export class StarknetProvider extends BaseProvider {
   private async handleBlock(block: FullBlock, eventsMap: EventsMap) {
     this.log.info({ blockNumber: block.block_number }, 'handling block');
 
-    const txsToCheck = block.transactions.filter(
-      tx => !this.processedPoolTransactions.has(tx.transaction_hash)
-    );
+    const txs = this.getTransactionsToProcess(block);
 
-    for (const [i, tx] of txsToCheck.entries()) {
+    for (const [i, tx] of txs.entries()) {
       await this.handleTx(
         block,
         block.block_number,
@@ -90,9 +88,25 @@ export class StarknetProvider extends BaseProvider {
       );
     }
 
-    this.processedPoolTransactions.clear();
+    this.removeProcessedPoolTransactions(txs);
 
     this.log.debug({ blockNumber: block.block_number }, 'handling block done');
+  }
+
+  private getTransactionsToProcess(block: FullBlock) {
+    if (this.instance.config.optimistic_indexing_emit_confirmed) {
+      return block.transactions;
+    }
+    return block.transactions.filter(
+      tx => !this.processedPoolTransactions.has(tx.transaction_hash)
+    );
+  }
+
+  private removeProcessedPoolTransactions(txs: PendingTransaction[]) {
+    if (this.instance.config.optimistic_indexing_emit_confirmed) {
+      return txs.forEach(tx => this.processedPoolTransactions.delete(tx.transaction_hash));
+    }
+    this.processedPoolTransactions.clear();
   }
 
   private async handlePool(txs: PendingTransaction[], eventsMap: EventsMap, blockNumber: number) {
